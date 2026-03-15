@@ -1,0 +1,146 @@
+export type Gender = 'men' | 'women'
+
+export type TeamsData = {
+  men: Record<string, string>
+  women: Record<string, string>
+}
+
+export type PredictionsData = Record<string, number>
+
+export type SeedInfo = {
+  region: string
+  seed: number
+  playIn: string
+  seedStr: string
+}
+
+export type SeedsData = {
+  men: Record<string, SeedInfo>
+  women: Record<string, SeedInfo>
+}
+
+export type TeamStats = {
+  winPct: number
+  sos: number
+  kenpomRank?: number
+  offEfficiency: number
+  defEfficiency: number
+  efficiencyMargin: number
+  pointDiff: number
+  trueShooting: number
+  turnoverRate: number
+  astToRatio: number
+  ppg: number
+  oppPpg: number
+  consistency: number
+}
+
+export type TeamStatsData = {
+  men: Record<string, TeamStats>
+  women: Record<string, TeamStats>
+}
+
+export type FeatureImportanceItem = {
+  feature: string
+  importance: number
+}
+
+export type TemporalCVData = Record<string, number>
+
+export type HoldoutResults = {
+  brier: number
+  accuracy: number
+  logLoss: number
+  games: number
+}
+
+export type ModelPerformance = {
+  testBrier: number
+  testLogLoss: number
+  testAccuracy: number
+  valBrier: number
+  trainSeasons: string
+}
+
+export type ModelInfoData = {
+  ensemble: {
+    men: {
+      models: string[]
+      weights: number[]
+      features: string[]
+      nFeatures: number
+    }
+    women: {
+      models: string[]
+      weights: number[]
+      features: string[]
+      nFeatures: number
+    }
+  }
+  performance: {
+    men: ModelPerformance
+    women: ModelPerformance
+  }
+  holdout2025: {
+    men: HoldoutResults
+    women: HoldoutResults
+    combined: HoldoutResults
+  }
+  temporalCV: {
+    men: TemporalCVData
+    women: TemporalCVData
+  }
+  featureImportance: {
+    men: FeatureImportanceItem[]
+    women: FeatureImportanceItem[]
+  }
+  productionTrainRange: string
+}
+
+export type NcaaGame = {
+  game: {
+    gameID: string
+    away: {
+      names: { short: string; full: string; char6: string }
+      score: string
+      seed: string
+      description: string
+      winner: boolean
+    }
+    home: {
+      names: { short: string; full: string; char6: string }
+      score: string
+      seed: string
+      description: string
+      winner: boolean
+    }
+    gameState: string
+    startTime: string
+    startTimeEpoch: number
+    currentPeriod: string
+    contestClock: string
+    finalMessage: string
+    network: string
+    url: string
+  }
+}
+
+export type BracketMatchupData = {
+  topTeamId: string
+  bottomTeamId: string
+  topTeamName: string
+  bottomTeamName: string
+  topSeed: number
+  bottomSeed: number
+  topWinProb: number
+  bottomWinProb: number
+  isUpset: boolean
+  topPlayIn?: string
+  bottomPlayIn?: string
+}
+
+export type RegionData = {
+  code: string
+  name: string
+  matchups: BracketMatchupData[]
+}
