@@ -2,7 +2,7 @@ import { useModelInfo } from '@/hooks/useData'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Target, Brain, TrendingUp, BarChart3 } from 'lucide-react'
+import { Loader2, Target, Brain, BarChart3 } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -10,11 +10,7 @@ import {
   YAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   CartesianGrid,
-  Legend,
-  ReferenceLine,
   Cell,
 } from 'recharts'
 
@@ -66,20 +62,7 @@ export default function Model() {
     )
   }
 
-  const { holdout2025, temporalCV, featureImportance, ensemble } = modelInfo
-
-  // Temporal CV chart data
-  const cvYears = new Set([
-    ...Object.keys(temporalCV.men),
-    ...Object.keys(temporalCV.women),
-  ])
-  const cvData = Array.from(cvYears)
-    .sort()
-    .map((year) => ({
-      year,
-      men: temporalCV.men[year] ?? null,
-      women: temporalCV.women[year] ?? null,
-    }))
+  const { holdout2025, featureImportance, ensemble } = modelInfo
 
   // Feature importance data
   const menFeatures = featureImportance.men.map((f) => ({
@@ -101,88 +84,86 @@ export default function Model() {
           About the Model
         </h1>
         <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
-          An ensemble of Logistic Regression and XGBoost, trained on years of NCAA tournament data.
-          Here's how it performs and what it looks at.
+          A two-stage prediction pipeline. Stage 1 captures regular-season team quality;
+          Stage 2 learns how seeds, strength of schedule, and conference context shape tournament outcomes.
         </p>
       </div>
 
-      {/* Model Architecture */}
+      {/* Two-Stage Architecture */}
       <Card className="mb-8">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-navy-600" />
-            <CardTitle>Ensemble Architecture</CardTitle>
+            <CardTitle>Two-Stage Architecture</CardTitle>
           </div>
           <CardDescription>
-            Two models combined for robust predictions
+            Stage 1 captures regular-season quality. Stage 2 adjusts for tournament context.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Men's Model */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-navy-800">Men's Model</h4>
-              <div className="space-y-2">
-                {ensemble.men.models.map((model, i) => (
-                  <div key={model} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">
-                          {model === 'LR' ? 'Logistic Regression' : 'XGBoost'}
-                        </span>
-                        <span className="text-sm font-bold text-navy-700">
-                          {(ensemble.men.weights[i] * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${ensemble.men.weights[i] * 100}%`,
-                            backgroundColor: i === 0 ? NAVY : ORANGE,
-                          }}
-                        />
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Stage 1 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Stage 1</Badge>
+                <h4 className="font-semibold text-navy-800">Regular Season Model</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                Trained on ~77K regular-season games with rolling window features (5/7/10 games).
+                Produces a team-quality probability for each matchup.
+              </p>
+              {(['men', 'women'] as const).map((gender) => {
+                const stage1 = (ensemble as any)[gender]?.stage1
+                if (!stage1) return null
+                return (
+                  <div key={gender} className="space-y-1">
+                    <p className="text-xs font-medium text-gray-500 uppercase">{gender}'s</p>
+                    <div className="flex gap-2">
+                      {stage1.models.map((model: string, i: number) => (
+                        <div key={model} className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: i === 0 ? NAVY : ORANGE }} />
+                          <span className="text-xs text-gray-600">
+                            {model === 'LR' ? 'LR' : 'XGB'} {(stage1.weights[i] * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                      <span className="text-xs text-gray-400">({stage1.nFeatures} features)</span>
                     </div>
                   </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-400">
-                {ensemble.men.nFeatures} features used
-              </p>
+                )
+              })}
             </div>
 
-            {/* Women's Model */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-navy-800">Women's Model</h4>
-              <div className="space-y-2">
-                {ensemble.women.models.map((model, i) => (
-                  <div key={model} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">
-                          {model === 'LR' ? 'Logistic Regression' : 'XGBoost'}
-                        </span>
-                        <span className="text-sm font-bold text-navy-700">
-                          {(ensemble.women.weights[i] * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${ensemble.women.weights[i] * 100}%`,
-                            backgroundColor: i === 0 ? NAVY : ORANGE,
-                          }}
-                        />
-                      </div>
+            {/* Stage 2 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Stage 2</Badge>
+                <h4 className="font-semibold text-navy-800">Tournament Model</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                Trained on ~2,500 historical tournament games. Uses Stage 1 probability +
+                seed diff, conference, SOS, and KenPom (men's) to learn March-specific adjustments.
+              </p>
+              {(['men', 'women'] as const).map((gender) => {
+                const stage2 = (ensemble as any)[gender]?.stage2
+                if (!stage2) return null
+                return (
+                  <div key={gender} className="space-y-1">
+                    <p className="text-xs font-medium text-gray-500 uppercase">{gender}'s</p>
+                    <div className="flex gap-2">
+                      {stage2.models.map((model: string, i: number) => (
+                        <div key={model} className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: i === 0 ? NAVY : ORANGE }} />
+                          <span className="text-xs text-gray-600">
+                            {model === 'LR' ? 'LR' : 'XGB'} {(stage2.weights[i] * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                      <span className="text-xs text-gray-400">({stage2.nFeatures} features)</span>
                     </div>
                   </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-400">
-                {ensemble.women.nFeatures} features used
-              </p>
+                )
+              })}
             </div>
           </div>
 
@@ -321,68 +302,6 @@ export default function Model() {
         </CardContent>
       </Card>
 
-      {/* Temporal CV */}
-      <Card className="mb-8">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-navy-600" />
-            <CardTitle>Temporal Cross-Validation</CardTitle>
-          </div>
-          <CardDescription>
-            Brier score by tournament year (lower is better). The dashed line shows a coin-flip baseline (0.250).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={cvData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="year" tick={{ fontSize: 12 }} />
-              <YAxis
-                domain={[0.1, 0.28]}
-                tickFormatter={(v: number) => v.toFixed(2)}
-                tick={{ fontSize: 12 }}
-              />
-              <RechartsTooltip
-                formatter={(value: number) => [value?.toFixed(4), '']}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-              />
-              <Legend />
-              <ReferenceLine
-                y={0.25}
-                stroke="#dc2626"
-                strokeDasharray="6 4"
-                label={{
-                  value: 'Coin Flip (0.250)',
-                  position: 'right',
-                  fill: '#dc2626',
-                  fontSize: 11,
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="men"
-                stroke={NAVY}
-                strokeWidth={2.5}
-                dot={{ fill: NAVY, r: 4 }}
-                activeDot={{ r: 6 }}
-                name="Men's"
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="women"
-                stroke={ORANGE}
-                strokeWidth={2.5}
-                dot={{ fill: ORANGE, r: 4 }}
-                activeDot={{ r: 6 }}
-                name="Women's"
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
       {/* Model Details */}
       <Card>
         <CardHeader>
@@ -402,9 +321,10 @@ export default function Model() {
             <div className="space-y-3">
               <h4 className="font-semibold text-navy-800">Methodology</h4>
               <ul className="space-y-1.5 text-gray-600">
-                <li>Ensemble of Logistic Regression + XGBoost</li>
-                <li>Optimal blend weights found via Brier score minimization</li>
+                <li>Two-stage pipeline: regular season + tournament models</li>
+                <li>LR + XGBoost ensembles with Optuna-tuned hyperparameters</li>
                 <li>Temporal cross-validation (train on past, test on future)</li>
+                <li>Probabilities clipped to [0.01, 0.99]</li>
                 <li>No data leakage -- only pre-tournament stats used</li>
               </ul>
             </div>

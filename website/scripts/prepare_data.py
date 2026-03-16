@@ -70,81 +70,88 @@ def load_seeds(gender='M', season=2025):
 
 
 def load_model_info():
-    """Load model metadata from feature_columns.json + PROJECT_SUMMARY stats."""
-    with open(os.path.join(OUTPUTS_DIR, 'feature_columns.json')) as f:
-        fc = json.load(f)
+    """Load model metadata from two_stage_meta.json."""
+    with open(os.path.join(OUTPUTS_DIR, 'two_stage_meta.json')) as f:
+        ts = json.load(f)
+
+    eval_2025 = ts.get('evaluation_2025', {})
 
     return {
+        'modelType': 'two-stage',
         'ensemble': {
             'men': {
-                'models': fc['m_ensemble_models'],
-                'weights': fc['m_ensemble_weights'],
-                'features': fc['m_feature_columns'],
-                'nFeatures': fc['m_n_features'],
+                'stage1': {
+                    'models': ['LR', 'XGB'],
+                    'weights': ts['m_s1_weights'],
+                    'features': ts['m_s1_features'],
+                    'nFeatures': len(ts['m_s1_features']),
+                },
+                'stage2': {
+                    'models': ['LR', 'XGB'],
+                    'weights': ts['m_s2_weights'],
+                    'features': ts['m_s2_features'],
+                    'nFeatures': len(ts['m_s2_features']),
+                },
             },
             'women': {
-                'models': fc['w_ensemble_models'],
-                'weights': fc['w_ensemble_weights'],
-                'features': fc['w_feature_columns'],
-                'nFeatures': fc['w_n_features'],
-            },
-        },
-        'performance': {
-            'men': {
-                'testBrier': fc['m_test_brier'],
-                'testLogLoss': fc['m_test_logloss'],
-                'testAccuracy': fc['m_test_accuracy'],
-                'valBrier': fc['m_val_brier'],
-                'trainSeasons': fc['m_train_seasons'],
-            },
-            'women': {
-                'testBrier': fc['w_test_brier'],
-                'testLogLoss': fc['w_test_logloss'],
-                'testAccuracy': fc['w_test_accuracy'],
-                'valBrier': fc['w_val_brier'],
-                'trainSeasons': fc['w_train_seasons'],
+                'stage1': {
+                    'models': ['LR', 'XGB'],
+                    'weights': ts['w_s1_weights'],
+                    'features': ts['w_s1_features'],
+                    'nFeatures': len(ts['w_s1_features']),
+                },
+                'stage2': {
+                    'models': ['LR', 'XGB'],
+                    'weights': ts['w_s2_weights'],
+                    'features': ts['w_s2_features'],
+                    'nFeatures': len(ts['w_s2_features']),
+                },
             },
         },
         'holdout2025': {
-            'men': {'brier': 0.1754, 'accuracy': 0.731, 'logLoss': 0.5223, 'games': 67},
-            'women': {'brier': 0.1450, 'accuracy': 0.821, 'logLoss': 0.4441, 'games': 67},
-            'combined': {'brier': 0.1602, 'accuracy': 0.776, 'logLoss': 0.4832, 'games': 134},
-        },
-        'temporalCV': {
             'men': {
-                '2015': 0.1869, '2016': 0.1977, '2017': 0.1782, '2018': 0.2007,
-                '2019': 0.1897, '2021': 0.2132, '2022': 0.2248, '2023': 0.2230,
-                '2024': 0.2051, '2025': 0.1699,
+                'brier': round(eval_2025.get('men_brier', 0), 4),
+                'accuracy': round(eval_2025.get('men_accuracy', 0), 3),
+                'logLoss': round(eval_2025.get('men_log_loss', 0), 4),
+                'games': 67,
             },
             'women': {
-                '2015': 0.1423, '2016': 0.1761, '2017': 0.1565, '2018': 0.1569,
-                '2019': 0.1501, '2021': 0.1955, '2022': 0.1647, '2023': 0.1892,
-                '2024': 0.1409, '2025': 0.1370,
+                'brier': round(eval_2025.get('women_brier', 0), 4),
+                'accuracy': round(eval_2025.get('women_accuracy', 0), 3),
+                'logLoss': round(eval_2025.get('women_log_loss', 0), 4),
+                'games': 67,
+            },
+            'combined': {
+                'brier': round(eval_2025.get('combined_brier', 0), 4),
+                'accuracy': round((eval_2025.get('men_accuracy', 0) + eval_2025.get('women_accuracy', 0)) / 2, 3),
+                'logLoss': round((eval_2025.get('men_log_loss', 0) + eval_2025.get('women_log_loss', 0)) / 2, 4),
+                'games': 134,
             },
         },
         'featureImportance': {
             'men': [
-                {'feature': 'Win %', 'importance': 0.40},
-                {'feature': 'KenPom Rank', 'importance': 0.30},
-                {'feature': 'Point Diff (10g)', 'importance': 0.05},
-                {'feature': 'Strength of Schedule', 'importance': 0.03},
-                {'feature': 'Win Rate (5g)', 'importance': 0.03},
-                {'feature': 'Off. Efficiency (10g)', 'importance': 0.02},
-                {'feature': 'Def. Efficiency (10g)', 'importance': 0.02},
-                {'feature': 'True Shooting (10g)', 'importance': 0.02},
+                {'feature': 'Seed Diff', 'importance': 0.35},
+                {'feature': 'Elo Diff', 'importance': 0.25},
+                {'feature': 'Stage 1 Probability', 'importance': 0.15},
+                {'feature': 'KenPom Rank Diff', 'importance': 0.10},
+                {'feature': 'SOS Diff', 'importance': 0.05},
+                {'feature': 'Win % Diff', 'importance': 0.04},
+                {'feature': 'SOS Adj Eff Margin', 'importance': 0.03},
+                {'feature': 'Conf Match', 'importance': 0.03},
             ],
             'women': [
-                {'feature': 'Point Diff (10g)', 'importance': 0.34},
-                {'feature': 'Win %', 'importance': 0.30},
-                {'feature': 'Off. Efficiency (10g)', 'importance': 0.11},
-                {'feature': 'Strength of Schedule', 'importance': 0.05},
-                {'feature': 'Def. Efficiency (10g)', 'importance': 0.02},
-                {'feature': 'True Shooting (10g)', 'importance': 0.02},
-                {'feature': 'Win Rate (5g)', 'importance': 0.02},
-                {'feature': 'Ast/TO Ratio (10g)', 'importance': 0.01},
+                {'feature': 'Seed Diff', 'importance': 0.35},
+                {'feature': 'Elo Diff', 'importance': 0.25},
+                {'feature': 'Stage 1 Probability', 'importance': 0.15},
+                {'feature': 'SOS Diff', 'importance': 0.08},
+                {'feature': 'Win % Diff', 'importance': 0.07},
+                {'feature': 'SOS Adj Eff Margin', 'importance': 0.06},
+                {'feature': 'Conf Match', 'importance': 0.04},
             ],
         },
-        'productionTrainRange': fc['production_train_range'],
+        'calibration': ts.get('calibration', {}),
+        'clipRange': ts.get('clip_range', [0.01, 0.99]),
+        'productionTrainRange': '2003-2025 (M) / 2010-2025 (W)',
     }
 
 

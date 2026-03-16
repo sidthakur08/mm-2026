@@ -1323,3 +1323,150 @@ def get_team_rolling_snapshot(
     )
 
     return latest
+
+
+# ---------------------------------------------------------------------------
+# 8. Elo rating system
+# ---------------------------------------------------------------------------
+
+def compute_elo_ratings(
+    results_df: pd.DataFrame,
+    k_factor: float = 20.0,
+    home_advantage: float = 0.0,
+    season_carryover: float = 0.75,
+    initial_elo: float = 1500.0,
+    margin_factor: bool = True,
+) -> pd.DataFrame:
+    """Compute Elo ratings with margin-of-victory adjustment.
+
+    Uses a log-based MOV multiplier with autocorrelation dampening:
+        MOV_mult = log(MOV + 1) * (2.2 / (2.2 + 0.001 * elo_diff))
+
+    The log dampens blowout effects. The denominator reduces updates
+    when a large Elo favorite wins big (prevents runaway ratings).
+
+    Parameters
+    ----------
+    results_df : DataFrame with columns Season, DayNum, WTeamID, LTeamID, WScore, LScore
+        Game results in chronological order (compact or detailed format).
+    k_factor : float
+        Base K-factor. Multiplied by MOV multiplier per game.
+    home_advantage : float
+        Elo points added for home team. 0 for neutral-site predictions.
+    season_carryover : float
+        Between 0 and 1. How much of prior season Elo carries over.
+        0 = full reset to initial_elo, 1 = no regression.
+    initial_elo : float
+        Starting Elo for new teams.
+    margin_factor : bool
+        If True, scale K by margin of victory. If False, flat K.
+
+    Returns
+    -------
+    DataFrame with columns: Season, DayNum, TeamID, Elo
+        One row per team per game, with the Elo BEFORE that game was played.
+        (shift-by-one to prevent leakage, matching the rolling window approach)
+    """
+    # Sort games chronologically
+    games = results_df[["Season", "DayNum", "WTeamID", "LTeamID",
+                         "WScore", "LScore"]].copy()
+    if "WLoc" in results_df.columns:
+        games["WLoc"] = results_df["WLoc"].values
+    else:
+        games["WLoc"] = "N"
+    games = games.sort_values(["Season", "DayNum"]).reset_index(drop=True)
+
+    # Current Elo ratings -- carried across seasons
+    elo: dict[int, float] = {}
+    # Records: pre-game Elo for each team in each game
+    records: list[dict] = []
+
+    prev_season = None
+
+    for _, row in games.iterrows():
+        season = int(row["Season"])
+        daynum = int(row["DayNum"])
+        w_id = int(row["WTeamID"])
+        l_id = int(row["LTeamID"])
+        w_score = float(row["WScore"])
+        l_score = float(row["LScore"])
+        w_loc = row["WLoc"]
+
+        # Season transition: regress all ratings toward mean
+        if prev_season is not None and season != prev_season:
+            for tid in list(elo.keys()):
+                elo[tid] = initial_elo + season_carryover * (elo[tid] - initial_elo)
+        prev_season = season
+
+        # Initialize new teams
+        if w_id not in elo:
+            elo[w_id] = initial_elo
+        if l_id not in elo:
+            elo[l_id] = initial_elo
+
+        # Record PRE-GAME Elo (before update)
+        w_elo_pre = elo[w_id]
+        l_elo_pre = elo[l_id]
+
+        records.append({
+            "Season": season, "DayNum": daynum,
+            "TeamID": w_id, "Elo": w_elo_pre,
+        })
+        records.append({
+            "Season": season, "DayNum": daynum,
+            "TeamID": l_id, "Elo": l_elo_pre,
+        })
+
+        # Elo difference (winner's perspective, with home court)
+        elo_diff_w = w_elo_pre - l_elo_pre
+        if w_loc == "H":
+            elo_diff_w += home_advantage
+        elif w_loc == "A":
+            elo_diff_w -= home_advantage
+        # Neutral: no adjustment
+
+        # Expected win probability (standard logistic)
+        expected_w = 1.0 / (1.0 + 10.0 ** (-elo_diff_w / 400.0))
+        expected_l = 1.0 - expected_w
+
+        # Margin of victory multiplier
+        score_diff = abs(w_score - l_score)
+        elo_diff_abs = abs(elo_diff_w)
+        if margin_factor:
+            mov_mult = np.log(score_diff + 1) * (2.2 / (2.2 + 0.001 * elo_diff_abs))
+        else:
+            mov_mult = 1.0
+
+        # Update ratings
+        k_adj = k_factor * mov_mult
+        elo[w_id] = w_elo_pre + k_adj * (1.0 - expected_w)
+        elo[l_id] = l_elo_pre + k_adj * (0.0 - expected_l)
+
+    return pd.DataFrame(records)
+
+
+def get_team_elo_snapshot(elo_df: pd.DataFrame, season: int) -> pd.Series:
+    """Get each team's final Elo for a given season (last recorded Elo).
+
+    Parameters
+    ----------
+    elo_df : DataFrame
+        Output of ``compute_elo_ratings`` with columns Season, DayNum, TeamID, Elo.
+    season : int
+        Season to extract final Elos for.
+
+    Returns
+    -------
+    Series indexed by TeamID with Elo values.
+    """
+    season_data = elo_df[elo_df["Season"] == season]
+    if len(season_data) == 0:
+        return pd.Series(dtype=float, name="Elo")
+    # Take the last recorded Elo per team (highest DayNum)
+    latest = (
+        season_data
+        .sort_values("DayNum")
+        .groupby("TeamID")["Elo"]
+        .last()
+    )
+    return latest

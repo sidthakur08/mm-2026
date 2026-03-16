@@ -62,22 +62,35 @@ export type ModelPerformance = {
   trainSeasons: string
 }
 
+export type StageInfo = {
+  models: string[]
+  weights: number[]
+  features: string[]
+  nFeatures: number
+}
+
 export type ModelInfoData = {
+  modelType?: string
   ensemble: {
     men: {
-      models: string[]
-      weights: number[]
-      features: string[]
-      nFeatures: number
+      stage1?: StageInfo
+      stage2?: StageInfo
+      // Legacy single-stage fields
+      models?: string[]
+      weights?: number[]
+      features?: string[]
+      nFeatures?: number
     }
     women: {
-      models: string[]
-      weights: number[]
-      features: string[]
-      nFeatures: number
+      stage1?: StageInfo
+      stage2?: StageInfo
+      models?: string[]
+      weights?: number[]
+      features?: string[]
+      nFeatures?: number
     }
   }
-  performance: {
+  performance?: {
     men: ModelPerformance
     women: ModelPerformance
   }
@@ -86,7 +99,7 @@ export type ModelInfoData = {
     women: HoldoutResults
     combined: HoldoutResults
   }
-  temporalCV: {
+  temporalCV?: {
     men: TemporalCVData
     women: TemporalCVData
   }
@@ -94,6 +107,8 @@ export type ModelInfoData = {
     men: FeatureImportanceItem[]
     women: FeatureImportanceItem[]
   }
+  calibration?: Record<string, unknown>
+  clipRange?: number[]
   productionTrainRange: string
 }
 
