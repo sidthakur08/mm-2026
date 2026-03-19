@@ -70,16 +70,8 @@ export function useLiveScores() {
 
   const fetchScores = () => {
     setLoading(true)
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
 
-    const url = import.meta.env.PROD
-      ? `/api/ncaa-live-scores`
-      : `https://ncaa-api.henrygd.me/scoreboard/basketball-men/d1/${year}/${month}/${day}`
-
-    fetch(url)
+    fetch('/api/ncaa-live-scores')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch scores')
         return res.json()

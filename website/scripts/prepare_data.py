@@ -49,7 +49,7 @@ def load_predictions():
     return men_preds, women_preds
 
 
-def load_seeds(gender='M', season=2025):
+def load_seeds(gender='M', season=2026):
     """Load tournament seeds for a given season."""
     filename = f"{'M' if gender == 'M' else 'W'}NCAATourneySeeds.csv"
     seeds = {}
@@ -211,18 +211,9 @@ def main():
     men_preds, women_preds = load_predictions()
     print(f"  Men: {len(men_preds)} matchups, Women: {len(women_preds)} matchups")
 
-    print("Loading seeds (2025 as demo)...")
-    men_seeds = load_seeds('M', 2025)
-    women_seeds = load_seeds('W', 2025)
-    # Try 2026 seeds if available
-    men_seeds_2026 = load_seeds('M', 2026)
-    women_seeds_2026 = load_seeds('W', 2026)
-    if men_seeds_2026:
-        men_seeds = men_seeds_2026
-        print("  Found 2026 men's seeds!")
-    if women_seeds_2026:
-        women_seeds = women_seeds_2026
-        print("  Found 2026 women's seeds!")
+    print("Loading seeds (2026)...")
+    men_seeds = load_seeds('M', 2026)
+    women_seeds = load_seeds('W', 2026)
     print(f"  Men: {len(men_seeds)} seeded teams, Women: {len(women_seeds)} seeded teams")
 
     print("Loading model info...")

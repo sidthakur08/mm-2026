@@ -5,7 +5,7 @@ import BracketRegion from '@/components/BracketRegion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, AlertTriangle, Info } from 'lucide-react'
+import { Loader2, AlertTriangle } from 'lucide-react'
 import type { Gender } from '@/lib/types'
 
 export default function Bracket() {
@@ -63,14 +63,6 @@ export default function Bracket() {
             <TabsTrigger value="women">Women's</TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>
-
-      {/* Info Banner */}
-      <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
-        <Info className="h-4 w-4 text-blue-500 shrink-0" />
-        <p className="text-sm text-blue-700">
-          Showing 2025 bracket structure as reference. Predictions use current 2026 season data. Seeds will update when the 2026 bracket is announced.
-        </p>
       </div>
 
       {isLoading ? (

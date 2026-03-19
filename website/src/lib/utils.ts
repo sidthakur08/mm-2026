@@ -33,8 +33,8 @@ export function getWinProbability(
 export function getRegionName(code: string): string {
   const regionNames: Record<string, string> = {
     W: 'East',
-    X: 'Midwest',
-    Y: 'South',
+    X: 'South',
+    Y: 'Midwest',
     Z: 'West',
   }
   return regionNames[code] || code
