@@ -1,0 +1,9 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd website && npm install && npm run build",
+  "outputDirectory": "website/dist",
+  "installCommand": "echo 'skip'",
+  "rewrites": [
+    { "source": "/((?!assets|data|api).*)", "destination": "/index.html" }
+  ]
+}

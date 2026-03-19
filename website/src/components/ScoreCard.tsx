@@ -20,9 +20,21 @@ interface ScoreCardProps {
   network: string
   startTime: string
   status: 'live' | 'upcoming' | 'final'
+  awayWinProb?: number | null
 }
 
-function TeamRow({ team, isWinner, isFinal }: { team: GameTeam; isWinner: boolean; isFinal: boolean }) {
+function TeamRow({
+  team,
+  isWinner,
+  isFinal,
+  winProb,
+}: {
+  team: GameTeam
+  isWinner: boolean
+  isFinal: boolean
+  winProb?: number | null
+}) {
+  const isFavored = winProb != null && winProb >= 0.5
   return (
     <div
       className={cn(
@@ -44,6 +56,16 @@ function TeamRow({ team, isWinner, isFinal }: { team: GameTeam; isWinner: boolea
         >
           {team.names?.short || team.names?.char6 || 'TBD'}
         </span>
+        {winProb != null && isFavored && (
+          <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+            {(winProb * 100).toFixed(0)}%
+          </span>
+        )}
+        {winProb != null && !isFavored && (
+          <span className="text-[10px] font-medium text-gray-400">
+            {(winProb * 100).toFixed(0)}%
+          </span>
+        )}
       </div>
       <span
         className={cn(
@@ -67,9 +89,11 @@ export default function ScoreCard({
   network,
   startTime,
   status,
+  awayWinProb,
 }: ScoreCardProps) {
   const isFinal = status === 'final'
   const isLive = status === 'live'
+  const homeWinProb = awayWinProb != null ? 1 - awayWinProb : null
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -88,10 +112,7 @@ export default function ScoreCard({
           )}
           {status === 'upcoming' && (
             <Badge variant="outline">
-              {new Date(startTime).toLocaleTimeString([], {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
+              {startTime}
             </Badge>
           )}
           {isLive && currentPeriod && (
@@ -106,9 +127,22 @@ export default function ScoreCard({
       </div>
 
       <div className="divide-y divide-gray-100">
-        <TeamRow team={away} isWinner={away.winner} isFinal={isFinal} />
-        <TeamRow team={home} isWinner={home.winner} isFinal={isFinal} />
+        <TeamRow team={away} isWinner={away.winner} isFinal={isFinal} winProb={awayWinProb} />
+        <TeamRow team={home} isWinner={home.winner} isFinal={isFinal} winProb={homeWinProb} />
       </div>
+
+      {awayWinProb != null && (
+        <div className="h-1.5 flex">
+          <div
+            className="bg-navy-600 transition-all duration-500"
+            style={{ width: `${awayWinProb * 100}%` }}
+          />
+          <div
+            className="bg-orange-400 transition-all duration-500"
+            style={{ width: `${(1 - awayWinProb) * 100}%` }}
+          />
+        </div>
+      )}
 
       {isLive && gameState && (
         <div className="px-4 py-1.5 bg-red-50 border-t border-red-100">

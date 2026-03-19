@@ -159,3 +159,29 @@ export type RegionData = {
   name: string
   matchups: BracketMatchupData[]
 }
+
+export type BracketTeam = {
+  id: string
+  name: string
+  seed: number
+}
+
+export type BracketGame = {
+  gameId: string
+  round: number // 1=R64, 2=R32, 3=S16, 4=E8, 5=F4, 6=Championship
+  region?: string // W/X/Y/Z for rounds 1-4, undefined for F4/Championship
+  topTeam: BracketTeam | null
+  bottomTeam: BracketTeam | null
+  topWinProb: number
+  predictedWinnerId: string
+  isUpset: boolean
+  nextGameId?: string
+}
+
+export type FullBracket = {
+  games: Record<string, BracketGame>
+  regions: Record<string, string[]> // region code -> game IDs for that region
+  finalFour: string[] // game IDs
+  championship: string // game ID
+  champion: BracketTeam
+}

@@ -1,8 +1,11 @@
-import { useLiveScores } from '@/hooks/useData'
+import { useState, useEffect, useMemo } from 'react'
+import { useLiveScores, useTeams, useSeeds } from '@/hooks/useData'
 import ScoreCard from '@/components/ScoreCard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { RefreshCw, Wifi, WifiOff, Calendar } from 'lucide-react'
+import { getWinProbability } from '@/lib/utils'
+import type { TeamsData, PredictionsData } from '@/lib/types'
 
 interface GameData {
   game: {
@@ -58,16 +61,88 @@ function categorizeGames(games: GameData[]) {
   return { live, upcoming, final: final_ }
 }
 
+/** Normalize a team name for fuzzy matching */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[.']/g, '')
+    .replace(/\bst\b/g, 'state')
+    .replace(/\bso\b/g, 'south')
+    .replace(/\bno\b/g, 'north')
+    .replace(/\bfla\b/g, 'florida')
+    .replace(/\bconn\b/g, 'connecticut')
+    .replace(/\bmiss\b/g, 'mississippi')
+    .replace(/\b(the|univ|university|of)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Build a lookup from normalized name -> team ID using our teams data */
+function buildNameToIdMap(
+  teams: TeamsData,
+  gender: 'men' | 'women'
+): Map<string, string> {
+  const map = new Map<string, string>()
+  const genderTeams = teams[gender]
+  for (const [id, name] of Object.entries(genderTeams)) {
+    map.set(normalizeName(name), id)
+    // Also add shortened versions
+    const parts = name.split(' ')
+    if (parts.length > 1) {
+      map.set(normalizeName(parts[parts.length - 1]), id) // last word
+    }
+  }
+  return map
+}
+
+/** Find our team ID for an NCAA API team name */
+function findTeamId(
+  ncaaName: string,
+  nameMap: Map<string, string>
+): string | null {
+  const norm = normalizeName(ncaaName)
+  // Exact match
+  if (nameMap.has(norm)) return nameMap.get(norm)!
+  // Substring match
+  for (const [key, id] of nameMap) {
+    if (norm.includes(key) || key.includes(norm)) return id
+  }
+  return null
+}
+
+/** Get model prediction for a live game */
+function getGamePrediction(
+  game: GameData,
+  nameMap: Map<string, string>,
+  predictions: PredictionsData | null
+): number | null {
+  if (!predictions) return null
+  const awayName = game.game.away.names?.short || game.game.away.names?.char6
+  const homeName = game.game.home.names?.short || game.game.home.names?.char6
+  if (!awayName || !homeName) return null
+
+  const awayId = findTeamId(awayName, nameMap)
+  const homeId = findTeamId(homeName, nameMap)
+  if (!awayId || !homeId) return null
+
+  const prob = getWinProbability(awayId, homeId, predictions)
+  return prob === 0.5 ? null : prob // 0.5 means no prediction found
+}
+
 function GameSection({
   title,
   games,
   status,
   icon,
+  nameMap,
+  predictions,
 }: {
   title: string
   games: GameData[]
   status: 'live' | 'upcoming' | 'final'
   icon: React.ReactNode
+  nameMap: Map<string, string>
+  predictions: PredictionsData | null
 }) {
   if (games.length === 0) return null
 
@@ -91,6 +166,7 @@ function GameSection({
             network={g.game.network}
             startTime={g.game.startTime}
             status={status}
+            awayWinProb={getGamePrediction(g, nameMap, predictions)}
           />
         ))}
       </div>
@@ -100,6 +176,24 @@ function GameSection({
 
 export default function Home() {
   const { games, loading, error, refetch } = useLiveScores()
+  const { data: teams } = useTeams()
+  useSeeds() // preload for other pages
+  const [menPredData, setMenPredData] = useState<PredictionsData | null>(null)
+  useEffect(() => {
+    fetch('/data/predictions_men.json')
+      .then((r) => r.json())
+      .then((d: PredictionsData) => setMenPredData(d))
+      .catch(() => {})
+  }, [])
+
+  // Build name-to-ID lookup map
+  const nameMap = useMemo(() => {
+    if (!teams) return new Map<string, string>()
+    return buildNameToIdMap(teams, 'men')
+  }, [teams])
+
+  const predictions = menPredData
+
   const typedGames = games as GameData[]
   const { live, upcoming, final: finalGames } = categorizeGames(typedGames)
   const today = new Date().toLocaleDateString('en-US', {
@@ -201,6 +295,8 @@ export default function Home() {
               title="Live Now"
               games={live}
               status="live"
+              nameMap={nameMap}
+              predictions={predictions}
               icon={
                 <div className="flex items-center gap-1">
                   <Wifi className="h-4 w-4 text-red-500" />
@@ -213,6 +309,8 @@ export default function Home() {
               title="Upcoming"
               games={upcoming}
               status="upcoming"
+              nameMap={nameMap}
+              predictions={predictions}
               icon={<Calendar className="h-5 w-5 text-blue-500" />}
             />
 
@@ -220,6 +318,8 @@ export default function Home() {
               title="Final"
               games={finalGames}
               status="final"
+              nameMap={nameMap}
+              predictions={predictions}
               icon={<span className="text-lg">🏁</span>}
             />
           </>

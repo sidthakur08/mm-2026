@@ -1,0 +1,11 @@
+/data/
+outputs/
+notebooks/
+scripts/
+/src/
+*.joblib
+*.csv
+__pycache__/
+*.pyc
+.git/
+requirements.txt
