@@ -43,7 +43,7 @@ const FIRST_FOUR_WINNERS: Record<string, string> = {
   'Z11': '1400',  // Texas beat NC State
   'Y16': '1224',  // Howard beat UMBC
   'X16': '1341',  // Prairie View beat Lehigh
-  // Y11: Miami OH vs SMU — add when result is known; model picks Miami OH
+  'Y11': '1275',  // Miami OH beat SMU
 }
 
 function resolvePlayIn(
