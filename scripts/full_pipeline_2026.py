@@ -764,7 +764,7 @@ m_s2_xgb_params.update({"random_state": RANDOM_STATE, "eval_metric": "logloss", 
 m_s2_xgb = XGBClassifier(**m_s2_xgb_params)
 m_s2_xgb.fit(m_s2_X_tr, m_s2_y_tr)
 
-m_s2_weights, m_s2_val_ll = optimize_ensemble_weights([m_s2_lr, m_s2_xgb], m_s2_X_val, m_s2_y_val, min_lr=0.3)
+m_s2_weights, m_s2_val_ll = optimize_ensemble_weights([m_s2_lr, m_s2_xgb], m_s2_X_val, m_s2_y_val, min_lr=0.5)
 m_s2_model = EnsemblePredictor([m_s2_lr, m_s2_xgb], m_s2_weights)
 
 # Women's Stage 2
