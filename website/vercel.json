@@ -1,6 +1,0 @@
-{
-  "routes": [
-    { "src": "/api/ncaa-live-scores", "dest": "/api/ncaa-live-scores.js" },
-    { "src": "/[^.]+", "dest": "/" }
-  ]
-}
