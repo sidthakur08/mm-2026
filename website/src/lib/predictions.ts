@@ -37,25 +37,29 @@ const FINAL_FOUR_PAIRS: [string, string][] = [
 
 /**
  * Actual First Four results (2026).
- * Maps "regionCode+seed" to the winning team's ID.
+ * Maps "gender:regionCode+seed" to the winning team's ID.
  */
 const FIRST_FOUR_WINNERS: Record<string, string> = {
-  'Z11': '1400',  // Texas beat NC State
-  'Y16': '1224',  // Howard beat UMBC
-  'X16': '1341',  // Prairie View beat Lehigh
-  'Y11': '1275',  // Miami OH beat SMU
+  // Men's
+  'men:Z11': '1400',  // Texas beat NC State
+  'men:Y16': '1224',  // Howard beat UMBC
+  'men:X16': '1341',  // Prairie View beat Lehigh
+  'men:Y11': '1275',  // Miami OH beat SMU
+  // Women's
+  'women:Z11': '3304',  // Nebraska beat Richmond
 }
 
 function resolvePlayIn(
   teams: { id: string; seed: number; playIn: string }[],
   predictions: PredictionsData,
-  regionCode?: string
+  regionCode?: string,
+  gender?: 'men' | 'women'
 ): { id: string; seed: number } {
   if (teams.length === 1) return teams[0]
 
   // Check if actual First Four result is known
-  if (regionCode) {
-    const key = regionCode + teams[0].seed
+  if (regionCode && gender) {
+    const key = `${gender}:${regionCode}${teams[0].seed}`
     const winnerId = FIRST_FOUR_WINNERS[key]
     if (winnerId) {
       const winner = teams.find((t) => t.id === winnerId)
@@ -116,8 +120,8 @@ export function buildFullBracket(
       const bottomCandidates = teamList.filter((t) => t.seed === bottomSeedNum)
 
       // Resolve play-in games (use actual First Four results when available)
-      const topResolved = resolvePlayIn(topCandidates, predictions, regionCode)
-      const bottomResolved = resolvePlayIn(bottomCandidates, predictions, regionCode)
+      const topResolved = resolvePlayIn(topCandidates, predictions, regionCode, gender)
+      const bottomResolved = resolvePlayIn(bottomCandidates, predictions, regionCode, gender)
 
       const topTeam: BracketTeam = {
         id: topResolved.id,
