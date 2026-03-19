@@ -142,7 +142,7 @@ export default function Model() {
               </div>
               <p className="text-sm text-gray-500">
                 Trained on ~2,500 historical tournament games. Uses Stage 1 probability +
-                seed diff, conference, SOS, and KenPom (men's) to learn March-specific adjustments.
+                seed diff, conference, SOS, Elo (0.5x scaled), and KenPom (men's) to learn March-specific adjustments.
               </p>
               {(['men', 'women'] as const).map((gender) => {
                 const stage2 = (ensemble as any)[gender]?.stage2

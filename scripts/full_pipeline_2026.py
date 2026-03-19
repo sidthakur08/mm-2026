@@ -63,6 +63,9 @@ ELO_K = 20
 ELO_CARRYOVER = 0.75
 ELO_MARGIN = True
 
+# Stage 2 Elo scaling: downweight s2_elo_diff to prevent domination
+S2_ELO_SCALE = 0.5
+
 PIPELINE_START = time.time()
 
 # ===================================================================
@@ -578,12 +581,12 @@ def build_tournament_features(tourney_df, seeds_df, conf_df, snap_dict, team_sta
             except KeyError:
                 s2_row[f"s2_{col}_diff"] = 0.0
 
-        # Elo diff for Stage 2 (end-of-regular-season)
+        # Elo diff for Stage 2 (end-of-regular-season, scaled)
         if season in elo_snapshots:
             elo_snap = elo_snapshots[season]
             elo_a = elo_snap.get(team_a, 1500.0)
             elo_b = elo_snap.get(team_b, 1500.0)
-            s2_row["s2_elo_diff"] = elo_a - elo_b
+            s2_row["s2_elo_diff"] = (elo_a - elo_b) * S2_ELO_SCALE
         else:
             s2_row["s2_elo_diff"] = 0.0
 
@@ -880,8 +883,8 @@ def predict_tournament_two_stage(tourney_games, snap, team_stats, seeds_df, conf
             except KeyError:
                 s2_row[f"s2_{col}_diff"] = 0.0
 
-        # Stage 2 Elo diff
-        s2_row["s2_elo_diff"] = elo_a - elo_b
+        # Stage 2 Elo diff (scaled)
+        s2_row["s2_elo_diff"] = (elo_a - elo_b) * S2_ELO_SCALE
 
         s2_vec = pd.DataFrame([s2_row])
         for fc in s2_feat_cols:
@@ -1129,6 +1132,7 @@ two_stage_meta = {
         "margin_factor": ELO_MARGIN,
         "home_advantage": 0,
         "initial_elo": 1500,
+        "s2_elo_scale": S2_ELO_SCALE,
     },
     "evaluation_2025": {
         "men_brier": float(m_2s_scores["brier"]),
@@ -1339,10 +1343,10 @@ def generate_submission_vectorized(
                 except KeyError:
                     s2r[f"s2_{col}_diff"] = 0.0
 
-            # Elo diff for Stage 2
+            # Elo diff for Stage 2 (scaled)
             ea = elo_snap.get(ta, 1500.0)
             eb = elo_snap.get(tb, 1500.0)
-            s2r["s2_elo_diff"] = ea - eb
+            s2r["s2_elo_diff"] = (ea - eb) * S2_ELO_SCALE
 
             s2_rows.append(s2r)
 

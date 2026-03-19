@@ -4,3 +4,10 @@ Pro*
 .claude/*
 .DS_Store
 docs/*
+node_modules/
+website/node_modules/
+website/dist/
+__pycache__/
+*.pyc
+
+.vercel
