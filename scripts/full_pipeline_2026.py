@@ -1145,7 +1145,7 @@ two_stage_meta = {
     },
     "calibration": {
         "method": "platt_scaling",
-        "enabled": use_calibration,
+        "enabled": bool(use_calibration),
         "raw_combined_brier": float(raw_brier),
         "calibrated_combined_brier": float(cal_brier),
     },
