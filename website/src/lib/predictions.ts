@@ -35,12 +35,35 @@ const FINAL_FOUR_PAIRS: [string, string][] = [
   ['Y', 'Z'],
 ]
 
+/**
+ * Actual First Four results (2026).
+ * Maps "regionCode+seed" to the winning team's ID.
+ */
+const FIRST_FOUR_WINNERS: Record<string, string> = {
+  'Z11': '1400',  // Texas beat NC State
+  'Y16': '1224',  // Howard beat UMBC
+  'X16': '1341',  // Prairie View beat Lehigh
+  // Y11: Miami OH vs SMU — add when result is known; model picks Miami OH
+}
+
 function resolvePlayIn(
   teams: { id: string; seed: number; playIn: string }[],
-  predictions: PredictionsData
+  predictions: PredictionsData,
+  regionCode?: string
 ): { id: string; seed: number } {
   if (teams.length === 1) return teams[0]
-  // For play-in games, pick the team the model favors
+
+  // Check if actual First Four result is known
+  if (regionCode) {
+    const key = regionCode + teams[0].seed
+    const winnerId = FIRST_FOUR_WINNERS[key]
+    if (winnerId) {
+      const winner = teams.find((t) => t.id === winnerId)
+      if (winner) return winner
+    }
+  }
+
+  // Fall back to model prediction
   const a = teams[0]
   const b = teams[1]
   const aWinProb = getWinProbability(a.id, b.id, predictions)
@@ -92,9 +115,9 @@ export function buildFullBracket(
       const topCandidates = teamList.filter((t) => t.seed === topSeedNum)
       const bottomCandidates = teamList.filter((t) => t.seed === bottomSeedNum)
 
-      // Resolve play-in games
-      const topResolved = resolvePlayIn(topCandidates, predictions)
-      const bottomResolved = resolvePlayIn(bottomCandidates, predictions)
+      // Resolve play-in games (use actual First Four results when available)
+      const topResolved = resolvePlayIn(topCandidates, predictions, regionCode)
+      const bottomResolved = resolvePlayIn(bottomCandidates, predictions, regionCode)
 
       const topTeam: BracketTeam = {
         id: topResolved.id,
