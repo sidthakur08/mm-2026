@@ -418,10 +418,10 @@ print("STEP 7: Stage 1 ensemble training + weight optimization")
 print("=" * 70)
 
 
-def optimize_ensemble_weights(models, X_val, y_val, step=0.02):
+def optimize_ensemble_weights(models, X_val, y_val, step=0.02, min_lr=0.0):
     """Find optimal LR/XGB blend weights via grid search on val set."""
     best_ll, best_w = float("inf"), None
-    for w_lr in np.arange(0.0, 1.01, step):
+    for w_lr in np.arange(min_lr, 1.01, step):
         w_xgb = 1.0 - w_lr
         probs = w_lr * models[0].predict_proba(X_val)[:, 1] + w_xgb * models[1].predict_proba(X_val)[:, 1]
         ll = log_loss(y_val, probs)
@@ -764,7 +764,7 @@ m_s2_xgb_params.update({"random_state": RANDOM_STATE, "eval_metric": "logloss", 
 m_s2_xgb = XGBClassifier(**m_s2_xgb_params)
 m_s2_xgb.fit(m_s2_X_tr, m_s2_y_tr)
 
-m_s2_weights, m_s2_val_ll = optimize_ensemble_weights([m_s2_lr, m_s2_xgb], m_s2_X_val, m_s2_y_val)
+m_s2_weights, m_s2_val_ll = optimize_ensemble_weights([m_s2_lr, m_s2_xgb], m_s2_X_val, m_s2_y_val, min_lr=0.3)
 m_s2_model = EnsemblePredictor([m_s2_lr, m_s2_xgb], m_s2_weights)
 
 # Women's Stage 2
